@@ -2,7 +2,6 @@
 FROM ghcr.io/hugomods/hugo:exts AS builder
 WORKDIR /src
 COPY . .
-RUN git submodule update --init --recursive
 RUN hugo --minify --gc
 
 # Stage 2: serve with Caddy (single binary, zero config, gzip built-in)
