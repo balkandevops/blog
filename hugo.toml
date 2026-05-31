@@ -1,0 +1,54 @@
+baseURL = "https://www.balkandevops.com"
+languageCode = "en-us"
+title = "BalkanDevOps"
+theme = "PaperMod"
+paginate = 10
+enableRobotsTXT = true
+buildDrafts = false
+
+[params]
+  description = "Kubernetes, cloud-native infra, and the bits the docs leave out."
+  author = "Ivan Gjakovikj"
+  defaultTheme = "auto"
+  ShowReadingTime = true
+  ShowShareButtons = false
+  ShowPostNavLinks = true
+  ShowBreadCrumbs = false
+  ShowCodeCopyButtons = true
+  ShowToc = true
+  TocOpen = false
+  ShowWordCount = false
+  comments = false
+
+[params.homeInfoParams]
+  Title = "BalkanDevOps"
+  Content = "Kubernetes, cloud-native infra, and the bits the docs leave out."
+
+[[params.socialIcons]]
+  name = "github"
+  url = "https://github.com/lcko9"
+
+[[params.socialIcons]]
+  name = "linkedin"
+  url = "https://linkedin.com/in/ivan-gjakovikj"
+
+[[params.socialIcons]]
+  name = "rss"
+  url = "/index.xml"
+
+[menu]
+  [[menu.main]]
+    identifier = "about"
+    name = "About"
+    url = "/about/"
+    weight = 10
+  [[menu.main]]
+    identifier = "tags"
+    name = "Tags"
+    url = "/tags/"
+    weight = 20
+
+[markup.highlight]
+  style = "dracula"
+  lineNos = false
+  noClasses = false
