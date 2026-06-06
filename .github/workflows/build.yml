@@ -28,7 +28,7 @@ jobs:
           extended: true
 
       - name: Build site
-        run: hugo --minify --gc
+        run: hugo --minify --gc --buildFuture
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
