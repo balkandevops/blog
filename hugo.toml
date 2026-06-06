@@ -26,11 +26,11 @@ buildDrafts = false
 
 [[params.socialIcons]]
   name = "github"
-  url = "https://github.com/lcko9"
+  url = "https://github.com/Icko9"
 
 [[params.socialIcons]]
   name = "linkedin"
-  url = "https://linkedin.com/in/ivan-gjakovikj"
+  url = "https://www.linkedin.com/in/ivan-gjakovikj-233a95236"
 
 [[params.socialIcons]]
   name = "rss"
