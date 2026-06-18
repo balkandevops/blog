@@ -323,4 +323,4 @@ MLflow gives you the tool. The layered Helm approach makes it safe to run at sca
 
 That is the whole point. Model versioning without the chaos. Reproducibility without the Slack messages. Audit trails without the spreadsheets.
 
-Running MLflow on Kubernetes? Hit me up on GitHub or LinkedIn.
+*Running MLflow on Kubernetes? Hit me up — [GitHub](https://github.com/Icko9) / [LinkedIn](https://www.linkedin.com/in/ivan-gjakovikj-233a95236).*
