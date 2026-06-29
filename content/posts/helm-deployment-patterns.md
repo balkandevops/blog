@@ -1,6 +1,6 @@
 ---
 title: "Three ways to deploy Helm charts on Kubernetes, and when each one breaks"
-date: 2026-06-07
+date: 2026-06-29
 tags: ["helm", "kubernetes", "argocd", "gitops", "terraform", "devops"]
 description: "Most teams deploy Helm charts the way they did on day one and never revisit it. Here are the three patterns I've run in production, and where each one breaks."
 mermaid: true
