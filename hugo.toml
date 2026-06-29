@@ -19,6 +19,7 @@ buildDrafts = false
   TocOpen = false
   ShowWordCount = false
   comments = false
+  mermaid = true
 
 [params.homeInfoParams]
   Title = "BalkanDevOps"
