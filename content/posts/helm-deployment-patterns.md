@@ -9,8 +9,6 @@ Most teams deploy Helm charts the way they did on day one, and never revisit it 
 
 The part nobody frames clearly is that Helm itself is just templating. It takes values and a chart and renders Kubernetes manifests. That rendering step is identical no matter what you do. The real question is how the rendered output lands on the cluster and how it stays there. There are three answers I have run in production, and each one is correct in a specific place and a liability everywhere else.
 
-![The three Helm deployment patterns](/img/helm-deployment-structure/3%20ways.png)
-
 Two of these push once and walk away. Only ArgoCD has a loop, and that loop is the entire difference.
 
 ## Pattern one: helm upgrade --install from CI
@@ -125,8 +123,6 @@ Here is the question everyone hits about a week after adopting ArgoCD, and it is
 Argo does not watch your registry. It watches git. So the new tag has to reach git somehow, and there are three ways to make that happen.
 
 The cleanest one, and the one I use, is to have CI write the tag back to git. The pipeline builds the image, pushes it to the registry, then patches the image tag in the app's values file and commits. Argo sees the commit and syncs. I tag images with the commit SHA rather than `latest` or a floating semver, because the SHA is immutable, traces straight back to the exact commit that produced it, and makes Argo's diff unmistakable since the tag string actually changes on every build.
-
-![ArgoCD GitOps image promotion flow](/img/helm-deployment-structure/Argo%20CD%20-%20flow.png)
 
 The build step produces two things: an image in the registry and a one line commit in git. Git is the pivot. Everything left of it is imperative build tooling, everything right of it is Argo converging the cluster to what git now says.
 
