@@ -76,6 +76,9 @@ Terraform for the cluster and its foundations: yes. Terraform for the apps that 
 
 ## Pattern three: ArgoCD
 
+![ArgoCD flow](/img/helm-deployment-structure/DiagramArgoCD.png)
+*Source: freeCodeCamp.org*
+
 ArgoCD is not magic and treating it like a silver bullet is how people end up disappointed. What it actually is: a controller that runs in the cluster and continuously compares the desired state in git against the live state on the cluster. You describe an application as a CRD pointing at a repo path, and Argo does the converging.
 
 ```yaml
