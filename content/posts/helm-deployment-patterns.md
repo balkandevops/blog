@@ -3,6 +3,10 @@ title: "Three ways to deploy Helm charts on Kubernetes, and when each one breaks
 date: 2026-06-29
 tags: ["helm", "kubernetes", "argocd", "gitops", "terraform", "devops"]
 description: "Most teams deploy Helm charts the way they did on day one and never revisit it. Here are the three patterns I've run in production, and where each one breaks."
+cover:
+  image: "img/helm-deployment-structure/argocd-gitops-k8s.png"
+  alt: "ArgoCD GitOps Kubernetes flow"
+  relative: false
 ---
 
 Most teams deploy Helm charts the way they did on day one, and never revisit it until it hurts. The pipeline that ran `helm upgrade --install` against a staging cluster two years ago is still the thing shipping production today, and nobody questions it because it works. Right up until it doesn't.
