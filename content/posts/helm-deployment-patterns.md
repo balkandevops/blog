@@ -3,33 +3,13 @@ title: "Three ways to deploy Helm charts on Kubernetes, and when each one breaks
 date: 2026-06-29
 tags: ["helm", "kubernetes", "argocd", "gitops", "terraform", "devops"]
 description: "Most teams deploy Helm charts the way they did on day one and never revisit it. Here are the three patterns I've run in production, and where each one breaks."
-mermaid: true
 ---
 
 Most teams deploy Helm charts the way they did on day one, and never revisit it until it hurts. The pipeline that ran `helm upgrade --install` against a staging cluster two years ago is still the thing shipping production today, and nobody questions it because it works. Right up until it doesn't.
 
 The part nobody frames clearly is that Helm itself is just templating. It takes values and a chart and renders Kubernetes manifests. That rendering step is identical no matter what you do. The real question is how the rendered output lands on the cluster and how it stays there. There are three answers I have run in production, and each one is correct in a specific place and a liability everywhere else.
 
-```mermaid
-flowchart TB
-    subgraph P1["Pattern 1: CI runs helm"]
-        direction LR
-        R1["Repo: chart + values"] --> CI["helm upgrade --install"] --> K1["Cluster"]
-    end
-    subgraph P2["Pattern 2: Terraform helm provider"]
-        direction LR
-        R2["Repo: HCL + values"] --> TF["terraform apply"] --> ST["Terraform state"] --> K2["Cluster"]
-    end
-    subgraph P3["Pattern 3: ArgoCD"]
-        direction LR
-        G3["Git: desired state"] --> AR["ArgoCD controller"] --> K3["Cluster"]
-        K3 -. "diff + reconcile" .-> AR
-    end
-    classDef cluster fill:#1f6feb,stroke:#1a5fd0,color:#ffffff
-    classDef store fill:#6e7781,stroke:#57606a,color:#ffffff
-    class K1,K2,K3 cluster
-    class ST store
-```
+![The three Helm deployment patterns](/img/helm-deployment-structure/3 ways.png)
 
 Two of these push once and walk away. Only ArgoCD has a loop, and that loop is the entire difference.
 
@@ -146,23 +126,7 @@ Argo does not watch your registry. It watches git. So the new tag has to reach g
 
 The cleanest one, and the one I use, is to have CI write the tag back to git. The pipeline builds the image, pushes it to the registry, then patches the image tag in the app's values file and commits. Argo sees the commit and syncs. I tag images with the commit SHA rather than `latest` or a floating semver, because the SHA is immutable, traces straight back to the exact commit that produced it, and makes Argo's diff unmistakable since the tag string actually changes on every build.
 
-```mermaid
-flowchart LR
-    M["Merge to main"] --> B["CI builds image, tag = commit SHA"]
-    B --> ACR["Registry / ACR"]
-    B --> Y["Patch tag in git: yq + commit, skip ci"]
-    Y --> GIT["Git: source of truth"]
-    GIT --> D["ArgoCD detects commit"]
-    D --> S["ArgoCD syncs cluster to git"]
-    S --> K["Cluster"]
-    ACR -. "kubelet pulls image by SHA" .-> K
-    classDef store fill:#6e7781,stroke:#57606a,color:#ffffff
-    classDef git fill:#2da44e,stroke:#218840,color:#ffffff
-    classDef cluster fill:#1f6feb,stroke:#1a5fd0,color:#ffffff
-    class ACR store
-    class GIT git
-    class K cluster
-```
+![ArgoCD GitOps image promotion flow](/img/helm-deployment-structure/Argo CD - flow.png)
 
 The build step produces two things: an image in the registry and a one line commit in git. Git is the pivot. Everything left of it is imperative build tooling, everything right of it is Argo converging the cluster to what git now says.
 
