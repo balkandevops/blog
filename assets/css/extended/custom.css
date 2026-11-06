@@ -1,0 +1,45 @@
+:root {
+  --accent: #3b82f6;
+  --font-text: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --main-width: 780px;
+}
+:root[data-theme="dark"] { --accent: #60a5fa; }
+
+body { font-family: var(--font-text); line-height: 1.7; }
+code, pre, .highlight { font-family: var(--font-mono); }
+.main { max-width: var(--main-width); }
+.header .logo a { font-weight: 700; letter-spacing: -0.01em; }
+
+/* Home intro */
+.first-entry { min-height: 0; margin: 2.5rem 0 2rem; }
+.first-entry .entry-header h1 { font-size: 2.4rem; letter-spacing: -0.02em; }
+.first-entry .entry-content { font-size: 1.1rem; line-height: 1.6; max-width: 36rem; }
+
+/* Post cards */
+.post-entry {
+  border: 1px solid var(--border); border-radius: 14px;
+  padding: 1.5rem; margin-bottom: 1.25rem;
+  transition: transform .15s ease, border-color .15s ease;
+}
+.post-entry:hover { transform: translateY(-2px); border-color: var(--accent); }
+.entry-header h2 { font-size: 1.35rem; letter-spacing: -0.01em; }
+.entry-content { color: var(--secondary); }
+
+/* Diagrams: keep white images from glaring in dark mode */
+.post-content img { border-radius: 10px; }
+:root[data-theme="dark"] .post-content img { background: #fff; padding: .5rem; }
+.entry-cover img { border-radius: 10px; }
+
+/* Links, tags, code */
+.post-content a { color: var(--accent); box-shadow: none; text-decoration: underline; text-underline-offset: 3px; }
+.post-tags a { border-radius: 999px; }
+.post-content :not(pre) > code { border-radius: 6px; padding: .15em .4em; }
+.highlight pre { border-radius: 10px; }
+
+/* Home avatar */
+.home-avatar {
+  display: block; width: 112px; height: 112px; border-radius: 50%;
+  object-fit: cover; margin-bottom: 1rem;
+  border: 3px solid var(--accent);
+}

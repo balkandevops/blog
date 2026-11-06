@@ -22,8 +22,8 @@ buildDrafts = false
   mermaid = true
 
 [params.homeInfoParams]
-  Title = "BalkanDevOps"
-  Content = "Kubernetes, cloud-native infra, and the bits the docs leave out."
+  Title = "Hi, I'm Ivan"
+  Content = "Platform and DevOps engineer in Skopje. Four years of production Kubernetes on Azure: AKS, Terraform, ArgoCD. I write about the bits the docs leave out."
 
 [[params.socialIcons]]
   name = "github"

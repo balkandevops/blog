@@ -7,6 +7,7 @@ cover:
   image: "img/helm-deployment-structure/argocd-gitops-k8s.png"
   alt: "ArgoCD GitOps Kubernetes flow"
   relative: false
+  hiddenInList: true
 ---
 
 Most teams deploy Helm charts the way they did on day one, and never revisit it until it hurts. The pipeline that ran `helm upgrade --install` against a staging cluster two years ago is still the thing shipping production today, and nobody questions it because it works. Right up until it doesn't.
