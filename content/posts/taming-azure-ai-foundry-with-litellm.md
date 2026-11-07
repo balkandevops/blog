@@ -6,29 +6,29 @@ draft: false
 summary: "Azure AI Foundry is amazing until you have to manage it for more than one team. Here is how LiteLLM became the gateway that fixed my key sprawl, capped everyone's spend, and turned key rotation from a fire drill into a thirty second job."
 ---
 
-For the last two months I have been working on some genuinely interesting projects that involve Azure AI Foundry. And Foundry is amazing. But have you ever actually tried to manage it?
+**TL;DR**
 
-You get an API key for each model. And if you are running multiple teams that sit on your head asking for a Gemini model here, a text embedding model there, three keys from three different LLM families over there, then you already know my pain.
+- Put LiteLLM in front of Foundry and hand out virtual keys, never the real ones.
+- Every team key gets a hard budget, so a runaway agent stops at its own cap.
+- A leaked key is a delete and a re-mint. The real Foundry credentials never move.
 
-This is where LiteLLM comes in. It is such an elegant solution to this problem that I genuinely cannot stop talking about it. It serves as a gateway in front of all my Azure Foundry services. One place to go, one production platform that serves every team and all the overhead that comes with them.
+A guy on one of the teams burned $35 in two hours. He wired up an agent, left the retry logic looping, and walked away from his desk. No malice. Just a loop doing what loops do.
 
-So let me walk you through what that actually looks like, because the more I run it, the more I think every team doing serious work on Foundry should be running something like this.
+$35 is nothing until you multiply it by a weekend and a dozen teams with nobody watching the meter. That is why every team key has a budget now.
 
-## The mess before the gateway
+## Why raw Foundry keys don't scale
 
-Here is what happens if you do not have a gateway.
+Foundry gives you a key per model deployment. Then one team wants a Mistral model, another wants an embedding model, a third wants something from the Phi family. Three endpoints, three keys, multiplied by every team in the org.
 
-Someone needs GPT-4o, so they go into Foundry, grab the endpoint and the key, and paste it into a `.env`. Fine. Then another team needs an embedding model, so they get a second key. Then a third team wants Phi or Mistral from the model catalog, and that is a third endpoint with a third key. Now multiply that by every team in the org.
+Soon you have raw keys living in `.env` files and pipeline secrets. Nobody knows who spends what. When one leaks, you rotate it and hope you didn't break four other workloads sharing the same deployment.
 
-Suddenly you have a pile of raw Foundry keys living in random `.env` files and pipeline secrets. Nobody knows who is spending what. There is no limit on anything, so one agent stuck in a retry loop can quietly burn through your budget overnight and you only find out when the invoice lands. And the day one of those keys leaks, you rotate it and pray you did not just break four other workloads that happened to share the same deployment.
+A raw key is all or nothing. You can't scope it, cap it, or kill it without collateral damage.
 
-That is the trap. A raw Foundry key is all or nothing. You cannot scope it, you cannot cap it, and you cannot kill one without collateral damage. The whole job of a platform team is to make the right thing the easy thing, and a pile of shared keys is the opposite of that.
+LiteLLM fixes that. It sits in front of Foundry as one OpenAI compatible endpoint. Teams talk to LiteLLM, and LiteLLM talks to Foundry for them.
 
-## One gateway, every model behind it
+## One gateway, every model
 
-LiteLLM sits in front of Foundry and gives you a single OpenAI compatible endpoint. Your teams stop talking to Foundry directly. They talk to LiteLLM, and LiteLLM talks to Foundry on their behalf.
-
-The way you teach it about your models is a config file. You list every deployment once, give it a friendly name, and point it at the right Foundry endpoint. Here is the part that solves the three families problem from the start of this post:
+You list every deployment once in a config file, give it a friendly name, and point it at the right endpoint.
 
 ```yaml
 model_list:
@@ -55,15 +55,11 @@ model_list:
       api_key: os.environ/AZURE_API_KEY
 ```
 
-Notice the two prefixes, because this part trips people up. The OpenAI style deployments like GPT and the embedding models go through `azure/`. The rest of the Foundry catalog, your Phi, Mistral, Llama, and friends, go through `azure_ai/`. LiteLLM handles the translation for each one, so the team calling it never has to know or care which family they are hitting. They just ask for `gpt-4o` or `phi-4` by the friendly name and it works.
+The two prefixes trip people up. GPT and the embedding models go through `azure/`. The rest of the catalog (Phi, Mistral, Llama) goes through `azure_ai/`. Teams just ask for `gpt-4o` or `phi-4` by name and never care which family they hit.
 
-That is the whole trick. Three model families, three different endpoint shapes, three API keys, all collapsed into one endpoint and one name per model. The mess stays on my side of the gateway, where I can actually manage it, instead of spreading across every team's codebase.
+## Virtual keys
 
-## Virtual keys, or the part that makes everything else possible
-
-Once everything routes through one place, I stop handing out the real Foundry keys at all. Instead, every team gets a virtual key.
-
-A virtual key is not just an alias. It is a scoped credential with rules attached to it. I can say this key is only allowed to call these two models. I can say this key gets this much budget per month. I can say this key is limited to this many requests and tokens per minute. And I can revoke it whenever I want without touching anything else.
+Once everything routes through one place, I stop handing out the real Foundry keys. Every team gets a virtual key instead, and it comes with rules. Which models it can call. How much it can spend per month. How many requests and tokens per minute. And I can revoke it without touching anything else.
 
 ```bash
 curl -X POST "https://litellm.mycompany.com/key/generate" \
@@ -79,56 +75,42 @@ curl -X POST "https://litellm.mycompany.com/key/generate" \
   }'
 ```
 
-The real Foundry keys now live in exactly one place, the gateway, and nobody on any team ever sees them again. This one change is what makes budgets and key rotation almost free, which is the whole point of this post.
-
-Here is what one of these keys looks like in the LiteLLM UI. You can see the whole scope at a glance: the spend against its budget, the rate limits, and the exact list of models it is allowed to touch. Nothing about the real Foundry endpoints anywhere in sight.
+The real Foundry credentials now live in one place, the gateway. Here is what a key looks like in the LiteLLM UI: spend against budget, rate limits, and the exact models it can touch.
 
 ![A virtual key in the LiteLLM admin UI, showing its spend against budget, rate limits, and the list of allowed models](/img/litellm-virtual-key-overview.png)
 
 ## Budgets that actually stop the spend
 
-That `max_budget` line is the one that changed how I sleep.
+LiteLLM tracks spend per key in Postgres on every call. When a key crosses its ceiling, the gateway stops serving it.
 
-Let me tell you why I care about it so much. Before the budgets were locked down, a guy on one of the teams burned through 35 dollars in two hours. Two hours. He had wired up an agent, left the retry logic looping, and walked away from his desk. No malice, no dramatic mistake, just a loop doing exactly what loops do. And 35 dollars does not sound like anything until you sit down and do the math on what that becomes over a weekend, across a dozen teams, with nobody watching the meter.
+So the $35 loop would have hit its own team's cap, gotten a clear error back, and pinged me. Blast radius: one team, capped at a number I picked in advance.
 
-LiteLLM tracks spend per key in Postgres on every single call. When a key crosses its ceiling, the gateway just stops serving it. So that same runaway loop is no longer an org wide problem. It hits its own team's budget, gets an error back, and stops there. The guy would have hit his cap, gotten a clear error in the response, and pinged me about it instead of quietly draining the bill while he was at lunch. The blast radius is one team, capped at a number I picked in advance.
+Budgets nest too. Set one org wide cap, say $2,000 a month, then carve per team slices under it. Spend rolls up. One team can blow its own slice without putting the whole org over, and I can see exactly who spent what instead of staring at one giant Azure line item.
 
-This is the part that sells the whole platform when I explain it to people. Every team has a hard spend ceiling. The platform enforces it automatically. And you can finally see exactly which team spent what, instead of staring at one giant Azure line item with no way to break it down.
+Things I learned the hard way:
 
-It also nests, which is the setup you actually want. You can set one org wide cap, say two thousand a month total, then carve that into per team slices underneath it. Spend rolls up automatically. So a single team can blow its own slice without ever putting the whole org over its ceiling, and you get both views at once: the big number at the top and the per team breakdown you need to chase down whoever is being expensive this week.
-
-A few things I learned the hard way running this:
-
-- **Budgets reset on a duration, not a calendar month.** I assumed `budget_duration: "30d"` lined up with the month. It does not. It rolls thirty days from when you made the key, so my numbers never matched the Azure invoice until I figured that out. If you want clean monthly reporting, plan around it or reconcile in your observability tool later.
-- **Use soft limits, not just hard walls.** You can set a `soft_budget` that fires an alert without blocking the team. Wire that to Slack or Teams at around eighty percent. I skipped this at first and the result was a team hitting a hard wall with zero warning, then an annoyed message in my DMs. A heads up at eighty percent would have saved both of us the trouble.
-- **The Postgres is not a throwaway sidecar, even though it looks like one.** I treated it like one at first. Then it had a bad day, and because every virtual key and all the spend tracking lives in it, the budgets and the auth went down with it. Back it up and give it real resources like you would any other production database, because that is exactly what it is.
-- **Pin your image tag.** Do not run `latest`. LiteLLM ships fast and a proxy that sits in front of every team's AI access is not the place you want a surprise. Pin a known good version, read the changelog before you bump it, and test the bump somewhere that is not production. Boring advice right up until the day it saves you.
+- **Budgets reset on a duration, not a calendar month.** `budget_duration: "30d"` rolls thirty days from when you made the key. My numbers didn't match the Azure invoice until I figured that out.
+- **Use soft limits too.** A `soft_budget` fires an alert without blocking anyone. Wire it to Slack or Teams at around 80 percent. I skipped this at first and a team hit a hard wall with zero warning.
+- **The Postgres is not a throwaway sidecar.** It had a bad day once, and because every virtual key and all the spend tracking lives in it, budgets and auth went down with it. Back it up. Give it real resources.
+- **Pin your image tag.** Never `latest`. LiteLLM ships fast, and this proxy sits in front of every team's AI access. Read the changelog, test the bump outside prod.
 
 ## Rotating keys without a fire drill
 
-Spend is one half of why I run this. Leaks are the other.
+A key will leak eventually. A notification preview, a screenshot in a ticket, a log line nobody scrubbed.
 
-A key will leak eventually. It ends up in a notification preview, a screenshot in a ticket, a log line that should have been scrubbed. When that happens with a raw Foundry key, rotation is a whole project. You generate a new one in the Azure portal, hunt down every place the old one lives, redeploy all of them, and hope you did not miss one. Meanwhile the leaked key is still live and still billable.
+With a raw Foundry key that's a project. New key in the portal, hunt down every place the old one lives, redeploy everything, and the leaked key stays live and billable the whole time.
 
-With a LiteLLM virtual key, rotation is a couple of clicks.
+With a virtual key, you delete it, mint a fresh one with the same scope, and hand it to the one team that owns it. The leaked key is dead the second you revoke it. The real Foundry credentials never moved, because that's not what leaked.
 
-LiteLLM ships with an admin UI, and this is where it really shines for day to day work. If a key leaks, you delete it, mint a fresh one with the same scope, and hand it to the one team that owns it. The whole thing takes about as long as it sounds.
-
-The leaked key is dead the second you revoke it. And here is the important bit: the real Foundry credentials never moved. They are still sitting in the gateway where they always were, completely untouched, because the thing that leaked was never the real key in the first place. Nothing else in the org even notices.
-
-That is the entire argument for the gateway. A raw key leak is an incident. A virtual key leak is a thirty second task and a note in the channel.
-
-But the part I actually love is that you do not have to wait for a leak to rotate. Open a key's settings and you can turn on auto rotation.
+You don't have to wait for a leak either. Open a key's settings and turn on auto rotation.
 
 ![The key settings page in LiteLLM with auto rotation enabled on a seven day schedule and the next rotation date shown](/img/litellm-auto-rotation.png)
 
-Flip it on, set the interval, and LiteLLM rotates the key on that schedule by itself. The one in the screenshot rolls every seven days and already knows its next rotation date. No cron job, no script, nobody remembering to do it. The key just quietly replaces itself on a timer, which is exactly the kind of thing you want to be automatic instead of a calendar reminder you will eventually ignore.
+The one in the screenshot rolls every seven days and already knows its next rotation date. No cron job, no script, nobody remembering.
 
-## The Azure trick that makes this even cleaner
+## No Foundry key at all
 
-Because I am running all of this on AKS, I get one more thing for free, and it is my favorite part.
-
-Instead of stuffing those real Foundry keys into the config at all, I let LiteLLM authenticate to Foundry with a managed identity. The pod gets its own Azure identity, I grant that identity the right role on the Foundry resource, and the real API key disappears from my config completely. I expected this to be fiddly. It was not, which honestly surprised me more than it should have.
+Since this runs on AKS, I took it one step further. LiteLLM authenticates to Foundry with a managed identity. The pod gets its own Azure identity, I grant it the right role on the Foundry resource, and the API key disappears from the config.
 
 ```yaml
 model_list:
@@ -140,18 +122,8 @@ model_list:
       api_version: "2024-10-21"
 ```
 
-LiteLLM uses Azure's `DefaultAzureCredential` under the hood, so on AKS it just picks up the workload identity automatically. Think about what that means. There is no Foundry secret to leak, because there is no secret. The only credentials anyone ever handles are the virtual keys, and those are scoped, capped, and killable in one call.
+LiteLLM uses `DefaultAzureCredential` under the hood, so on AKS it picks up the workload identity automatically. I expected this to be fiddly. It wasn't.
 
-So now the security story is dead simple. The dangerous thing, real access to Foundry, lives only in the cluster identity and never travels anywhere. The cheap thing, the virtual key, is the only thing humans ever touch, and if one leaks I rotate it before my coffee gets cold.
+Now there's no Foundry secret to leak. The only credentials humans ever handle are virtual keys, and those are scoped, capped, and killable in one call.
 
-## The actual point
-
-Budgets and key rotation feel like two separate features when you read the docs. They are not. They are the same idea, which is that you should never hand anyone direct access to a metered, expensive, dangerous resource. You give them a scoped handle to it instead, one you can cap, watch, and revoke without ever touching the thing underneath.
-
-Azure AI Foundry gives you incredible models. LiteLLM is the layer that makes them safe to actually hand out across an org. The runaway loop hits a budget wall instead of a wall of money, the way that 35 dollar afternoon never could have. The leaked key dies in one call instead of one long afternoon. And the real Foundry access sits quietly in the cluster identity, doing nothing more exciting than existing.
-
-That is the boring infrastructure that holds the whole thing together. And boring is exactly what you want from the part of the stack that touches the bill.
-
-
-*Running one, or stuck mid-migration? Come yell at me — [GitHub](https://github.com/Icko9) / [LinkedIn](https://www.linkedin.com/in/ivan-gjakovikj-233a95236).*
-
+*Running one, or stuck mid migration? Come yell at me on [GitHub](https://github.com/Icko9) or [LinkedIn](https://www.linkedin.com/in/ivan-gjakovikj-233a95236).*
