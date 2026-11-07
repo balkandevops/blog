@@ -1,0 +1,22 @@
+disabled = false
+locale = "en"
+label = "English"
+weight = 1
+title = "BalkanDevOps"
+
+[params]
+  displayName = "EN"
+  isoCode = "en"
+  rtl = false
+  dateFormat = "2 January 2006"
+  description = "Kubernetes, cloud-native infra, and the bits the docs leave out."
+
+[params.author]
+  name = "Ivan Gjakovikj"
+  image = "img/ivan.jpg"
+  headline = "Platform & DevOps engineer in Skopje"
+  links = [
+    { github = "https://github.com/Icko9" },
+    { linkedin = "https://www.linkedin.com/in/ivan-gjakovikj-233a95236" },
+    { rss = "/index.xml" },
+  ]
